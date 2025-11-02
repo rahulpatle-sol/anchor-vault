@@ -1,16 +1,28 @@
-import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
-import { AnchorVault } from "../target/types/anchor_vault";
+const anchor = require("@coral-xyz/anchor");
 
 describe("anchor_vault", () => {
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
+  const provider = anchor.AnchorProvider.env();
+  anchor.setProvider(provider);
+  const program = anchor.workspace.AnchorVault;
 
-  const program = anchor.workspace.anchorVault as Program<AnchorVault>;
+  it("Initializes vault", async () => {
+    const [vaultStatePda, stateBump] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("vault_state"), provider.wallet.publicKey.toBuffer()],
+      program.programId
+    );
 
-  it("Is initialized!", async () => {
-    // Add your test here.
-    const tx = await program.methods.initialize().rpc();
-    console.log("Your transaction signature", tx);
+    const [vaultPda, vaultBump] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("vault"), provider.wallet.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const tx = await program.methods.initialize().accounts({
+      user: provider.wallet.publicKey,
+      vaultState: vaultStatePda,
+      vault: vaultPda,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    }).rpc();
+
+    console.log("Vault initialized:", tx);
   });
 });
